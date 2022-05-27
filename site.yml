@@ -1,0 +1,63 @@
+---
+- name: Setup Environment
+  hosts: localhost
+  become_user: root
+  vars:
+    go_version: 1.17.10
+    username: tschneid 
+
+  tasks:
+    - name: setup sudoless access
+      lineinfile:
+        state: present
+        path: /etc/sudoers
+        line: "{{ username }}    ALL=(ALL) NOPASSWD:ALL"
+      become: yes
+
+    - name: Setup git prefered editor
+      command:
+        cmd: git config --global core.editor "vim"
+
+    - name: Remove go directory for fresh install
+      file:
+        path: /usr/local/go
+        state: absent
+      become: yes
+
+    - name: Download go binary
+      ansible.builtin.get_url:
+        url: "https://go.dev/dl/go{{ go_version }}.linux-amd64.tar.gz"
+        dest: /tmp
+
+    - name: Extract go binary into /usr/local
+      ansible.builtin.unarchive:
+        src: "/tmp/go{{ go_version }}.linux-amd64.tar.gz"
+        dest: /usr/local
+      become: yes
+
+    - name: Create default GOPATH directory
+      file:
+        path: "{{ lookup('env', 'HOME') }}/go"
+        state: directory
+
+    - name: Add GOPATH and go/bin PATH to .bashrc
+      ansible.builtin.lineinfile:
+        line: "{{ item }}" 
+        path: "{{ lookup('env', 'HOME') }}/.bashrc"
+      with_items:
+        - "export GOPATH=$(go env GOPATH)"
+        - "export PATH=$PATH:/usr/local/go/bin"
+
+    - name: Install required packages
+      ansible.builtin.dnf:
+        name:
+          - python-setuptools
+          - python-virtualenv 
+          - gpgme-devel
+          - libassuan-devel 
+          - openssl
+          - podman
+          - podman-docker
+          - azure-cli
+      become: yes
+
