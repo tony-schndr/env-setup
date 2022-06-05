@@ -3,8 +3,13 @@
   hosts: localhost
   become_user: root
   vars:
-    go_version: 1.17.10
+    go_version: 1.17.11
     username: tschneid 
+    sansible_golang_tarball: "go{{ go_version }}.linux-amd64.tar.gz"
+    sansible_golang_tarball_checksum: d69a4fe2694f795d8e525c72b497ededc209cb7185f4c3b62d7a98dd6227b3fe
+
+  roles:
+    - role: sansible.golang
 
   tasks:
     - name: setup sudoless access
@@ -17,23 +22,6 @@
     - name: Setup git prefered editor
       command:
         cmd: git config --global core.editor "vim"
-
-    - name: Remove go directory for fresh install
-      file:
-        path: /usr/local/go
-        state: absent
-      become: yes
-
-    - name: Download go binary
-      ansible.builtin.get_url:
-        url: "https://go.dev/dl/go{{ go_version }}.linux-amd64.tar.gz"
-        dest: /tmp
-
-    - name: Extract go binary into /usr/local
-      ansible.builtin.unarchive:
-        src: "/tmp/go{{ go_version }}.linux-amd64.tar.gz"
-        dest: /usr/local
-      become: yes
 
     - name: Create default GOPATH directory
       file:
