@@ -34,9 +34,9 @@
         path: "{{ lookup('env', 'HOME') }}/.bashrc"
       with_items:
         - "export GOPATH=$(go env GOPATH)"
-        - "export PATH=$PATH:/usr/local/go/bin"
+        - "export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin"
 
-    - name: Install required packages
+    - name: Install required packages for ARO
       ansible.builtin.dnf:
         name:
           - python-setuptools
@@ -49,3 +49,41 @@
           - azure-cli
       become: yes
 
+    - name: Install packages for vagrant
+      ansible.builtin.dnf:
+        state: present
+        name:
+          - '@virtualization'
+          - qemu-kvm
+          - libvirt
+          - libguestfs-tools
+          - virt-install
+          - rsync
+          - vagrant
+          - vagrant-libvirt
+      become: yes
+
+    # - name: Set user for QEMU processes
+    #   replace:
+    #     path: /etc/libvirt/qemu.conf
+    #     regexp: '^#.*user = \"\+0\".*'
+    #     replace: '\1'
+    #   become: yes
+    - name: Set user for QEMU processes
+      ansible.builtin.lineinfile:
+        line: 'user = "+0"'
+        path: /etc/libvirt/qemu.conf
+      become: yes
+
+    - name: start service "{{ item }}"
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      with_items:
+        - virtnetworkd
+        - libvirtd
+      become: yes
+
+# Add user to group, prevents being prompted for password
+# sudo usermod -a -G libvirt $(whoami)
