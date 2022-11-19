@@ -33,7 +33,6 @@
         path: "{{ lookup('env', 'HOME') }}/.vimrc"
         state: touch
 
-
     - name: set vim config
       ansible.builtin.lineinfile:
         line: "{{ item }}" 
@@ -43,13 +42,14 @@
         - set expandtab
         - set shiftwidth=2
 
-    - name: Add GOPATH and go/bin PATH to .bashrc
+    - name: Set variables in .bashrc
       ansible.builtin.lineinfile:
         line: "{{ item }}" 
         path: "{{ lookup('env', 'HOME') }}/.bashrc"
       with_items:
         - "export GOPATH=$(go env GOPATH)"
         - "export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin"
+        - "export EDITOR='vim'"
 
     - name: Install required packages for ARO
       ansible.builtin.dnf:
@@ -62,6 +62,8 @@
           - podman
           - podman-docker
           - azure-cli
+          - graphviz
+          - gv
       become: yes
 
     - name: Grab kubectl binary
