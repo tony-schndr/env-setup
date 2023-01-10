@@ -3,10 +3,10 @@
   hosts: localhost
   become_user: root
   vars:
-    go_version: 1.17.11
+    go_version: 1.18.9
     username: tschneid 
     sansible_golang_tarball: "go{{ go_version }}.linux-amd64.tar.gz"
-    sansible_golang_tarball_checksum: d69a4fe2694f795d8e525c72b497ededc209cb7185f4c3b62d7a98dd6227b3fe
+    sansible_golang_tarball_checksum: 015692d2a48e3496f1da3328cf33337c727c595011883f6fc74f9b5a9c86ffa8
 
   roles:
     - role: sansible.golang
