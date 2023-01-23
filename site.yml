@@ -51,7 +51,25 @@
         - "export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin"
         - "export EDITOR='vim'"
 
-    - name: Install required packages for ARO
+    - name: Install required packages for ARO on Ubuntu
+      ansible.builtin.apt:
+        name:
+          - python-setuptools
+          - python3.8-venv
+          - libgpgme-dev
+          - libassuan-dev 
+          - openssl
+          - docker
+          - azure-cli
+          - graphviz
+          - gv
+          - make
+          - gcc
+          - jq
+      become: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Install required packages for ARO on fedora
       ansible.builtin.dnf:
         name:
           - python-setuptools
@@ -65,6 +83,7 @@
           - graphviz
           - gv
       become: yes
+      when: ansible_os_family == "RedHat"
 
     - name: Grab kubectl binary
       ansible.builtin.get_url:
@@ -86,7 +105,7 @@
           - vagrant
           - vagrant-libvirt
       become: yes
-
+      when: ansible_os_family == "RedHat"
     # - name: Set user for QEMU processes
     #   replace:
     #     path: /etc/libvirt/qemu.conf
@@ -98,6 +117,7 @@
         line: 'user = "+0"'
         path: /etc/libvirt/qemu.conf
       become: yes
+      when: ansible_os_family == "RedHat"
 
     - name: start service "{{ item }}"
       ansible.builtin.service:
@@ -108,6 +128,7 @@
         - virtnetworkd
         - libvirtd
       become: yes
+      when: ansible_os_family == "RedHat"
 
 # Add user to group, prevents being prompted for password
 # sudo usermod -a -G libvirt $(whoami)
