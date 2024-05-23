@@ -3,16 +3,10 @@
   hosts: localhost
   become_user: root
   vars:
-    go_version: 1.18.9
     username: tschneid 
-    sansible_golang_tarball: "go{{ go_version }}.linux-amd64.tar.gz"
-    sansible_golang_tarball_checksum: 015692d2a48e3496f1da3328cf33337c727c595011883f6fc74f9b5a9c86ffa8
-
-  roles:
-    - role: sansible.golang
 
   tasks:
-    - name: setup sudoless access
+    - name: setup passwordless sudo access
       lineinfile:
         state: present
         path: /etc/sudoers
@@ -20,8 +14,10 @@
       become: yes
 
     - name: Setup git prefered editor
-      command:
-        cmd: git config --global core.editor "vim"
+      git_config:
+        name: core.editor
+        scope: global
+        value: vim
 
     - name: Create default GOPATH directory
       file:
@@ -31,6 +27,8 @@
     - name: Create .vimrc
       ansible.builtin.file:
         path: "{{ lookup('env', 'HOME') }}/.vimrc"
+        modification_time: preserve
+        access_time: preserve
         state: touch
 
     - name: set vim config
@@ -51,21 +49,48 @@
         - "export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin"
         - "export EDITOR='vim'"
 
-    - name: Install required packages for ARO on Ubuntu
+    - name: create file for microsoft gpg key
+      ansible.builtin.file:
+        path: /etc/apt/trusted.gpg.d/microsoft.asc
+        mode: '0644'
+        state:  touch 
+        modification_time: preserve
+        access_time: preserve
+      become: yes
+          
+    - name: Add microsoft gpg key
+      ansible.builtin.apt_key:
+        url: 'https://packages.microsoft.com/keys/microsoft.asc'
+        keyring: /etc/apt/trusted.gpg.d/microsoft.asc
+        state: present
+      become: yes
+
+    - name: Add microsoft repository
+      ansible.builtin.apt_repository:
+        repo: "{{ item }}" 
+        state: present
+      become: yes
+      loop:
+        - 'deb [arch=amd64] https://packages.microsoft.com/repos/edge stable main'     
+        - 'deb [arch=amd64] https://packages.microsoft.com/ubuntu/22.04/prod jammy main'
+
+    - name: Install required packages for ARO on Ubuntu (w/ Intune)
       ansible.builtin.apt:
         name:
           - python-setuptools
-          - python3.8-venv
+          - python3.10-venv
           - libgpgme-dev
           - libassuan-dev 
           - openssl
           - docker
-          - azure-cli
           - graphviz
           - gv
           - make
           - gcc
           - jq
+          - curl
+          - gpg
+          - intune-portal
       become: yes
       when: ansible_os_family == "Debian"
 
@@ -85,50 +110,10 @@
       become: yes
       when: ansible_os_family == "RedHat"
 
-    - name: Grab kubectl binary
-      ansible.builtin.get_url:
-        url: https://dl.k8s.io/release/v1.24.1/bin/linux/amd64/kubectl
-        dest: /usr/local/bin
-        mode: 0755
-      become: yes
-
-    - name: Install packages for vagrant
-      ansible.builtin.dnf:
-        state: present
-        name:
-          - '@virtualization'
-          - qemu-kvm
-          - libvirt
-          - libguestfs-tools
-          - virt-install
-          - rsync
-          - vagrant
-          - vagrant-libvirt
-      become: yes
-      when: ansible_os_family == "RedHat"
-    # - name: Set user for QEMU processes
-    #   replace:
-    #     path: /etc/libvirt/qemu.conf
-    #     regexp: '^#.*user = \"\+0\".*'
-    #     replace: '\1'
-    #   become: yes
-    - name: Set user for QEMU processes
+    - name: Enforce password requirements
       ansible.builtin.lineinfile:
-        line: 'user = "+0"'
-        path: /etc/libvirt/qemu.conf
+        path: /etc/pam.d/common-password
+        regexp: '^password	requisite			pam_pwquality.so retry=3'
+        line: 'password	requisite			pam_pwquality.so retry=3 minlen=12 lcredit=1 ucredit=1 dcredit=1 ocredit=1'
       become: yes
-      when: ansible_os_family == "RedHat"
 
-    - name: start service "{{ item }}"
-      ansible.builtin.service:
-        name: "{{ item }}"
-        state: started
-        enabled: yes
-      with_items:
-        - virtnetworkd
-        - libvirtd
-      become: yes
-      when: ansible_os_family == "RedHat"
-
-# Add user to group, prevents being prompted for password
-# sudo usermod -a -G libvirt $(whoami)

@@ -5,13 +5,13 @@ Install ansible
 sudo dnf install ansible
 ```
 
-Install required roles.
 ```
-ansible-galaxy install -r requirements.yml 
-```
-Run the play to configure your environment.
+Run the play to configure your environment.  --ask-become-pass is only required for the first execution.
 `ansible-playbook site.yml --ask-become-pass`
 
-After play completes, add your user to libvirt group to
-prevent bein prompted for passwrod everytime you run VMs
-`sudo usermod -a -G libvirt $(whoami)`
+install go
+```
+wget https://go.dev/dl/go1.20.14.linux-amd64.tar.gz
+sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.20.14.linux-amd64.tar.gz
+rm go1.20.14.linux-amd64.tar.gz
+```
