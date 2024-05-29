@@ -79,6 +79,8 @@
         name:
           - python-setuptools
           - python3.10-venv
+          - podman
+          - podman-docker
           - libgpgme-dev
           - libassuan-dev 
           - openssl
